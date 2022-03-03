@@ -186,6 +186,26 @@
     }
   }
 
+  class TcpConn extends Conn {
+    setNoDelay(nodelay = true) {
+      return core.opSync("op_set_nodelay", this.rid, nodelay);
+    }
+
+    setKeepAlive(keepalive = true) {
+      return core.opSync("op_set_keepalive", this.rid, keepalive);
+    }
+  }
+
+  // 因为 #rid 私有， 而 deno 的类 webscoket upgrade 机制需要后面填入 rid
+  class HttpUpgradeConn extends Conn {
+    pid=0;
+    get rid() {
+      return this.pid;
+    }
+    setNoDelay(nodelay = true) {}
+    setKeepAlive(keepalive = true) {}
+  }
+
   class Listener {
     #rid = 0;
     #addr = null;
@@ -324,6 +344,8 @@
   window.__bootstrap.net = {
     connect,
     Conn,
+    TcpConn,
+    HttpUpgradeConn,
     opConnect,
     listen,
     opListen,

@@ -78,6 +78,10 @@ pub fn init() -> Extension {
         "op_http_upgrade_websocket",
         op_async(op_http_upgrade_websocket),
       ),
+      (
+        "op_http_upgrade_connect",
+        op_async(op_http_upgrade_connect),
+      ),
     ])
     .build()
 }
@@ -669,6 +673,39 @@ async fn op_http_upgrade_websocket(
   let transport = hyper::upgrade::on(request).await?;
   let ws_rid = ws_create_server_stream(&state, transport).await?;
   Ok(ws_rid)
+}
+
+async fn op_http_upgrade_connect(
+  state: Rc<RefCell<OpState>>,
+  rid: ResourceId,
+  _: (),
+) -> Result<ResourceId, AnyError> {
+  let stream = state
+    .borrow_mut()
+    .resource_table
+    .get::<HttpStreamResource>(rid)?;
+  let mut rd = RcRef::map(&stream, |r| &r.rd).borrow_mut().await;
+
+  let request = match &mut *rd {
+    HttpRequestReader::Headers(request) => request,
+    _ => {
+      return Err(http_error("cannot upgrade because request body was used"))
+    }
+  };
+
+  let transport = hyper::upgrade::on(request).await?;
+  let ws_rid = connect_create_server_stream(&state, transport).await?;
+  Ok(ws_rid)
+}
+
+async fn connect_create_server_stream(
+  state: &Rc<RefCell<OpState>>,
+  transport: hyper::upgrade::Upgraded,
+) -> Result<ResourceId, AnyError> {
+  let ws_resource = deno_net::io::HttpUpgradeStreamResource::upgrade(transport);
+  let resource_table = &mut state.borrow_mut().resource_table;
+  let rid = resource_table.add(ws_resource);
+  Ok(rid)
 }
 
 // Needed so hyper can use non Send futures

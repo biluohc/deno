@@ -51,6 +51,8 @@
     Uint8Array,
     Uint8ArrayPrototype,
   } = window.__bootstrap.primordials;
+  // 导入 HttpUpgradeConn
+  const { HttpUpgradeConn } = window.__bootstrap.net;
 
   const connErrorSymbol = Symbol("connError");
 
@@ -319,6 +321,18 @@
             }
             ws[_serverHandleIdleTimeout]();
           }
+        } else {
+          const upgrade = resp[_upgrade];
+          if (upgrade) {
+            const rid = await core.opAsync(
+              "op_http_upgrade_connect",
+              streamRid,
+            );
+
+            upgrade.pid = rid;
+
+            httpConn.close();
+          }
         }
       } finally {
         if (SetPrototypeHas(httpConn.managedResources, streamRid)) {
@@ -356,6 +370,7 @@
   }
 
   const _ws = Symbol("[[associated_ws]]");
+  const _upgrade = Symbol("[[associated_upgrade]]");
 
   function upgradeWebSocket(request, options = {}) {
     const upgrade = request.headers.get("upgrade");
@@ -425,8 +440,18 @@
     return { response, socket };
   }
 
+  // 构造 response 里面设置字段 供 respond 时特殊处理， 回填 rid 之后的 socket 才可用
+  function upgradeConnect(request, options = {}) {
+    const r = newInnerResponse(200);
+    const response = fromInnerResponse(r, "immutable");
+    const socket = new HttpUpgradeConn(0, "", "");
+    response[_upgrade] = socket;
+    return { response, socket };
+  }
+
   window.__bootstrap.http = {
     HttpConn,
     upgradeWebSocket,
+    upgradeConnect,
   };
 })(this);

@@ -135,6 +135,8 @@ declare namespace Deno {
    * Requires `allow-net` permission for "tcp". */
   export function connect(options: ConnectOptions): Promise<Conn>;
 
+  export interface HttpUpgradeConn extends Conn {}
+
   export interface ConnectTlsOptions {
     /** The port to connect to. */
     port: number;

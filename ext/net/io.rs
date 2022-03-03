@@ -120,6 +120,42 @@ impl Resource for TcpStreamResource {
   }
 }
 
+use hyper::upgrade::Upgraded;
+
+pub type HttpUpgradeStreamResource = FullDuplexResource<
+  tokio::io::ReadHalf<Upgraded>,
+  tokio::io::WriteHalf<Upgraded>,
+>;
+
+impl HttpUpgradeStreamResource {
+  pub fn upgrade(up: Upgraded) -> Self {
+    let rw = tokio::io::split(up);
+    FullDuplexResource::new(rw)
+  }
+}
+
+impl Resource for HttpUpgradeStreamResource {
+  fn name(&self) -> Cow<str> {
+    "httpUpgradeStream".into()
+  }
+
+  fn read(self: Rc<Self>, buf: ZeroCopyBuf) -> AsyncResult<usize> {
+    Box::pin(self.read(buf))
+  }
+
+  fn write(self: Rc<Self>, buf: ZeroCopyBuf) -> AsyncResult<usize> {
+    Box::pin(self.write(buf))
+  }
+
+  fn shutdown(self: Rc<Self>) -> AsyncResult<()> {
+    Box::pin(self.shutdown())
+  }
+
+  fn close(self: Rc<Self>) {
+    self.cancel_read_ops();
+  }
+}
+
 impl TcpStreamResource {
   pub fn set_nodelay(self: Rc<Self>, nodelay: bool) -> Result<(), AnyError> {
     self.map_socket(Box::new(move |socket| Ok(socket.set_nodelay(nodelay)?)))

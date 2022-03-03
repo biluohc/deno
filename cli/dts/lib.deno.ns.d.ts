@@ -2905,6 +2905,10 @@ declare namespace Deno {
     options?: UpgradeWebSocketOptions,
   ): WebSocketUpgrade;
 
+  export function upgradeConnect(
+    request: Request,
+    options?: UpgradeWebSocketOptions,
+  ): HttpUpgradeConn;
   /** Send a signal to process under given `pid`.
    *
    * If `pid` is negative, the signal will be sent to the process group

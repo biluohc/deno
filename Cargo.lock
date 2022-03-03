@@ -973,6 +973,7 @@ dependencies = [
  "base64 0.13.0",
  "bytes",
  "deno_core",
+ "deno_net",
  "deno_websocket",
  "hyper",
  "percent-encoding",
@@ -1005,6 +1006,7 @@ version = "0.30.0"
 dependencies = [
  "deno_core",
  "deno_tls",
+ "hyper",
  "log",
  "serde",
  "socket2 0.4.2",
